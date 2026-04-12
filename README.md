@@ -26,13 +26,7 @@ Once all selections are made, the calculator displays an itemized fee breakdown 
 
 ## Hosting
 
-The calculator is a single HTML file with no external dependencies. Host it anywhere static files are served:
-
-- **[tiiny.host](https://tiiny.host)** — drag and drop the file, get a shareable link instantly (recommended for Slack sharing)
-- **[Netlify Drop](https://app.netlify.com/drop)** — drag the file onto the page for an instant URL
-- **[GitHub Pages](https://pages.github.com)** — upload to a repo and enable Pages under Settings
-
-Once hosted, paste the URL directly into Slack.
+The calculator is a single HTML file with no external dependencies. Host it anywhere static files are served
 
 ## Usage notes
 
