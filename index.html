@@ -24,13 +24,102 @@
     box-shadow: 0 2px 12px rgba(0,0,0,0.08);
     padding: 36px 40px;
     width: 100%;
-    max-width: 580px;
+    max-width: 620px;
   }
 
-  .header { margin-bottom: 32px; }
+  .header { margin-bottom: 28px; }
   .header h1 { font-size: 20px; font-weight: 600; color: #111; margin-bottom: 4px; }
-  .header p { font-size: 13px; color: #777; }
+  .header-sub {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .header-sub p { font-size: 13px; color: #777; }
 
+  .verified-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #e6f4ea;
+    color: #2d6a4f;
+    padding: 3px 9px;
+    border-radius: 20px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .verified-badge:hover { background: #d0ebd8; }
+  .verified-badge.stale { background: #fff3e0; color: #b45309; }
+  .verified-badge svg { flex-shrink: 0; }
+
+  /* Fees-load warning banner */
+  .fees-warning {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: #fff8e6;
+    border: 1.5px solid #f0c060;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #7a5200;
+    line-height: 1.5;
+  }
+  .fees-warning svg { flex-shrink: 0; }
+
+  /* ── Audit block ── */
+  .audit-block {
+    background: #f8f8fc;
+    border: 1.5px solid #e0e0f0;
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-bottom: 28px;
+  }
+  .audit-block-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #888;
+    margin-bottom: 14px;
+  }
+  .audit-fields { display: flex; gap: 14px; flex-wrap: wrap; }
+  .audit-field { flex: 1; min-width: 180px; }
+  .audit-field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 5px;
+  }
+  .audit-field label span { color: #cc3333; margin-left: 2px; }
+  .audit-field input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid #d8d8e8;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    color: #111;
+    background: #fff;
+    transition: border-color 0.15s;
+    outline: none;
+  }
+  .audit-field input:focus { border-color: #3366cc; }
+  .audit-field input.error { border-color: #cc3333; }
+  .audit-error {
+    font-size: 11px;
+    color: #cc3333;
+    margin-top: 16px;
+    display: none;
+  }
+
+  /* ── Steps ── */
   .step { margin-bottom: 24px; }
   .step.locked { opacity: 0.35; pointer-events: none; }
   .step-label {
@@ -69,37 +158,66 @@
     font-family: inherit;
   }
   .btn:hover { border-color: #aaa; background: #fafafa; }
-  .btn.sel {
-    border-color: #3366cc;
-    background: #eef2ff;
-  }
-  .btn-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: #111;
-    display: block;
-    margin-bottom: 2px;
-  }
+  .btn.sel { border-color: #3366cc; background: #eef2ff; }
+  .btn-title { font-size: 15px; font-weight: 600; color: #111; display: block; margin-bottom: 2px; }
   .btn.sel .btn-title { color: #3366cc; }
-  .btn-sub {
-    font-size: 12px;
-    color: #888;
-    display: block;
-  }
+  .btn-sub { font-size: 12px; color: #888; display: block; }
   .btn.sel .btn-sub { color: #5580cc; }
 
+  /* ── Worker count sub-step ── */
+  .worker-count-box {
+    display: none;
+    margin-top: 14px;
+    padding: 16px 18px;
+    background: #f8f9ff;
+    border: 1.5px solid #d4dcf7;
+    border-radius: 10px;
+  }
+  .worker-count-box label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  .worker-count-row { display: flex; align-items: center; gap: 12px; }
+  .worker-count-row input[type="number"] {
+    width: 90px;
+    padding: 9px 12px;
+    border: 1.5px solid #d8d8e8;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    color: #111;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .worker-count-row input[type="number"]:focus { border-color: #3366cc; }
+  .worker-count-hint { font-size: 12px; color: #999; }
+  .petition-warning {
+    display: none;
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #fff8e6;
+    border: 1.5px solid #f0c060;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #7a5200;
+    line-height: 1.5;
+  }
+  .petition-warning strong { color: #5a3800; }
+
+  /* ── Result ── */
   .result {
     display: none;
     margin-top: 28px;
     border-top: 1.5px solid #eee;
     padding-top: 24px;
   }
-  .result-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #444;
-    margin-bottom: 16px;
-  }
+  .result-title { font-size: 14px; font-weight: 600; color: #444; margin-bottom: 16px; }
 
   .fee-row {
     display: flex;
@@ -112,6 +230,14 @@
   .fee-sub { font-size: 11px; color: #999; margin-left: 6px; }
   .fee-amt { font-size: 15px; font-weight: 600; color: #111; }
 
+  .per-petition-note {
+    font-size: 11px;
+    color: #3366cc;
+    font-weight: 600;
+    margin-bottom: 4px;
+    text-align: right;
+  }
+
   .total-row {
     display: flex;
     justify-content: space-between;
@@ -121,13 +247,62 @@
   .total-label { font-size: 14px; font-weight: 600; color: #333; }
   .total-amt { font-size: 22px; font-weight: 700; color: #111; }
 
-  .note {
-    font-size: 12px;
-    color: #888;
-    margin-top: 10px;
-    line-height: 1.5;
+  .grand-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 8px 0 4px;
+    border-top: 2px solid #3366cc;
+    margin-top: 4px;
   }
+  .grand-total-label { font-size: 15px; font-weight: 700; color: #3366cc; }
+  .grand-total-amt { font-size: 26px; font-weight: 800; color: #3366cc; }
 
+  .note { font-size: 12px; color: #888; margin-top: 10px; line-height: 1.5; }
+
+  /* ── Buttons ── */
+  .action-btns { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+
+  .print-btn {
+    display: none;
+    flex: 2;
+    min-width: 200px;
+    padding: 14px 20px;
+    background: #3366cc;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s;
+    text-align: center;
+  }
+  .print-btn:hover { background: #2552aa; }
+
+  .verify-btn {
+    display: none;
+    flex: 1;
+    min-width: 140px;
+    padding: 14px 16px;
+    background: #fff;
+    color: #3366cc;
+    border: 1.5px solid #3366cc;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s;
+    text-align: center;
+    text-decoration: none;
+  }
+  .verify-btn:hover { background: #eef2ff; }
+
+  .print-hint { font-size: 11px; color: #aaa; text-align: center; margin-top: 6px; display: none; }
+
+  /* ── Footer ── */
   .footer {
     margin-top: 32px;
     padding-top: 16px;
@@ -136,17 +311,210 @@
     color: #aaa;
     line-height: 1.6;
   }
+
+  /* ════════════════════════════════════════
+     PRINT / PDF STYLES
+     ════════════════════════════════════════ */
+  #print-area { display: none; }
+
+  @media print {
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+    body {
+      background: #fff;
+      padding: 0;
+      display: block;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+
+    .card { display: none; }
+
+    #print-area {
+      display: block;
+      padding: 36px 48px;
+      max-width: 760px;
+      margin: 0 auto;
+      color: #111;
+    }
+
+    .pr-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2.5px solid #3366cc;
+      padding-bottom: 14px;
+      margin-bottom: 22px;
+    }
+    .pr-title { font-size: 20px; font-weight: 700; color: #3366cc; }
+    .pr-subtitle { font-size: 12px; color: #777; margin-top: 3px; }
+    .pr-refblock { text-align: right; }
+    .pr-refid { font-size: 11px; font-weight: 700; color: #555; letter-spacing: 0.04em; }
+    .pr-timestamp { font-size: 11px; color: #999; margin-top: 2px; }
+
+    .pr-section { margin-bottom: 22px; }
+    .pr-section-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #888;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 5px;
+      margin-bottom: 12px;
+    }
+
+    .pr-audit-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 24px;
+    }
+    .pr-audit-item label {
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #999;
+      margin-bottom: 2px;
+    }
+    .pr-audit-item span { font-size: 14px; font-weight: 600; color: #111; }
+
+    .pr-selections-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px 24px;
+    }
+    .pr-sel-item label {
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #999;
+      margin-bottom: 2px;
+    }
+    .pr-sel-item span { font-size: 13px; color: #222; }
+
+    .pr-fee-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .pr-fee-table thead tr { background: #f0f4ff; }
+    .pr-fee-table thead th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #555;
+    }
+    .pr-fee-table thead th:last-child { text-align: right; }
+    .pr-fee-table tbody tr { border-bottom: 1px solid #f0f0f0; }
+    .pr-fee-table tbody td { padding: 9px 12px; color: #333; }
+    .pr-fee-table tbody td:last-child { text-align: right; font-weight: 600; color: #111; }
+    .pr-fee-table tbody td .sub { font-size: 10px; color: #aaa; display: block; margin-top: 1px; }
+
+    .pr-totals { margin-top: 10px; }
+    .pr-total-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 7px 12px;
+      font-size: 13px;
+      color: #555;
+    }
+    .pr-total-row.per { background: #f8f8f8; border-radius: 6px; }
+    .pr-total-row .val { font-weight: 600; color: #111; }
+    .pr-grand-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 12px;
+      margin-top: 8px;
+      background: #3366cc;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .pr-notes {
+      background: #fffbf0;
+      border: 1px solid #f0e0a0;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 11px;
+      color: #7a6000;
+      line-height: 1.6;
+    }
+    .pr-notes strong { display: block; margin-bottom: 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    .pr-footer {
+      margin-top: 28px;
+      padding-top: 12px;
+      border-top: 1px solid #ddd;
+      font-size: 10px;
+      color: #aaa;
+      line-height: 1.6;
+    }
+    .pr-disclaimer {
+      margin-top: 8px;
+      padding: 10px 14px;
+      background: #f5f5f5;
+      border-radius: 6px;
+      font-size: 10px;
+      color: #888;
+      line-height: 1.6;
+    }
+  }
 </style>
 </head>
 <body>
+
+<!-- ════════ SCREEN UI ════════ -->
 <div class="card">
 
   <div class="header">
     <h1>H-2A / H-2B Fee Calculator</h1>
-    <p>USCIS paper filing fees &mdash; Form G-1055, Edition 03/23/26</p>
+    <div class="header-sub">
+      <p>USCIS paper filing fees &mdash; Form G-1055</p>
+      <a class="verified-badge" id="verifiedBadge" href="https://www.uscis.gov/g-1055" target="_blank" title="">
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+          <circle cx="6" cy="6" r="5.5" stroke="currentColor" stroke-width="1.2"/>
+          <path d="M3.5 6l1.8 1.8 3.2-3.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span id="badgeText">Fees verified &mdash; loading&hellip;</span>
+      </a>
+    </div>
   </div>
 
-  <div class="step" id="step1">
+  <!-- Fees fallback warning -->
+  <div class="fees-warning" id="feesWarning">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M8 1L15 14H1L8 1Z" stroke="#b45309" stroke-width="1.4" stroke-linejoin="round"/>
+      <path d="M8 6v4" stroke="#b45309" stroke-width="1.4" stroke-linecap="round"/>
+      <circle cx="8" cy="12" r="0.7" fill="#b45309"/>
+    </svg>
+    <span>Could not load live fee data &mdash; using built-in values. Verify current fees at
+      <a href="https://www.uscis.gov/g-1055" target="_blank" style="color:#7a5200;">uscis.gov/g-1055</a>
+      before filing.
+    </span>
+  </div>
+
+  <!-- Audit block -->
+  <div class="audit-block">
+    <div class="audit-block-title">Audit Information</div>
+    <div class="audit-fields">
+      <div class="audit-field">
+        <label>Employer Name <span>*</span></label>
+        <input type="text" id="employerName" placeholder="e.g. Sunrise Farms LLC" oninput="checkAudit()">
+      </div>
+      <div class="audit-field">
+        <label>Prepared By <span>*</span></label>
+        <input type="text" id="preparedBy" placeholder="Your full name" oninput="checkAudit()">
+      </div>
+    </div>
+    <div class="audit-error" id="auditError">Please enter both employer name and preparer name to continue.</div>
+  </div>
+
+  <!-- Step 1: Visa type -->
+  <div class="step locked" id="step1">
     <div class="step-label">Step 1 &mdash; Visa type</div>
     <div class="btn-group">
       <button class="btn" onclick="pick('visa','h2a',this)">
@@ -160,8 +528,12 @@
     </div>
   </div>
 
+  <!-- Step PP: Premium processing (H-2B only) -->
   <div class="step locked" id="step_pp">
-    <div class="step-label">Step 2 &mdash; Premium processing (I-907) <span class="badge">H-2B only</span></div>
+    <div class="step-label">
+      Step 2 &mdash; Premium processing (I-907)
+      <span class="badge">H-2B only</span>
+    </div>
     <div class="btn-group">
       <button class="btn" onclick="pick('pp','yes',this)">
         <span class="btn-title">Yes</span>
@@ -174,6 +546,7 @@
     </div>
   </div>
 
+  <!-- Step Workers -->
   <div class="step locked" id="step2">
     <div class="step-label" id="step2label">Step 2 &mdash; Workers</div>
     <div class="btn-group">
@@ -186,8 +559,19 @@
         <span class="btn-sub">No limit per petition</span>
       </button>
     </div>
+
+    <!-- Worker count sub-step (named only) -->
+    <div class="worker-count-box" id="workerCountBox">
+      <label>How many named workers are being petitioned?</label>
+      <div class="worker-count-row">
+        <input type="number" id="workerCount" min="1" max="9999" placeholder="0" oninput="updateWorkerCount()">
+        <span class="worker-count-hint">USCIS allows max 25 named beneficiaries per I-129 petition</span>
+      </div>
+      <div class="petition-warning" id="petitionWarning"></div>
+    </div>
   </div>
 
+  <!-- Step Size -->
   <div class="step locked" id="step3">
     <div class="step-label" id="step3label">Step 3 &mdash; Employer size</div>
     <div class="btn-group">
@@ -202,70 +586,222 @@
     </div>
   </div>
 
+  <!-- Result -->
   <div class="result" id="result"></div>
 
-  <div class="footer">
-    Fees are for paper filing only. Source: USCIS Form G-1055, Edition 03/23/26.<br>
-    Always verify current fees at <a href="https://www.uscis.gov" target="_blank" style="color:#3366cc;">uscis.gov</a> before filing.
+  <!-- Action buttons -->
+  <div class="action-btns">
+    <button class="print-btn" id="printBtn" onclick="printReport()">
+      Download / Print PDF Report
+    </button>
+    <a class="verify-btn" id="verifyBtn"
+       href="https://www.uscis.gov/sites/default/files/document/forms/g-1055.pdf"
+       target="_blank">
+      Verify fees on uscis.gov &#8599;
+    </a>
   </div>
+  <p class="print-hint" id="printHint">Select &ldquo;Save as PDF&rdquo; in your printer dialog.</p>
 
+  <div class="footer">
+    Fees are for paper filing only. Source: USCIS Form G-1055.<br>
+    Always verify current fees at <a href="https://www.uscis.gov" target="_blank" style="color:#3366cc;">uscis.gov</a> before filing.
+    &copy; 2026 Inukshuk, LLC. MIT License.
+  </div>
 </div>
 
-<script>
-const state = { visa: null, pp: null, workers: null, size: null };
+<!-- ════════ PRINT AREA ════════ -->
+<div id="print-area"></div>
 
-const fees = {
-  h2a: {
-    named:   { large: { filing: 1090, asylum: 600 }, small: { filing: 545,  asylum: 300 } },
-    unnamed: { large: { filing: 530,  asylum: 600 }, small: { filing: 460,  asylum: 300 } }
-  },
-  h2b: {
-    named:   { large: { filing: 1080, fraud: 150, asylum: 600 }, small: { filing: 540, fraud: 150, asylum: 300 } },
-    unnamed: { large: { filing: 580,  fraud: 150, asylum: 600 }, small: { filing: 460, fraud: 150, asylum: 300 } }
+<script>
+// ── Fee data ──────────────────────────────────────────────────────────────────
+
+// Fallback used if fees.json cannot be fetched (e.g. opened as a local file).
+const FALLBACK = {
+  edition:  "03/23/26",
+  verified: "2026-04-24",
+  pp_fee: 1780,
+  fees: {
+    h2a: {
+      named:   { large: { filing: 1090, asylum: 600 }, small: { filing: 545,  asylum: 300 } },
+      unnamed: { large: { filing: 530,  asylum: 600 }, small: { filing: 460,  asylum: 300 } }
+    },
+    h2b: {
+      named:   { large: { filing: 1080, fraud: 150, asylum: 600 }, small: { filing: 540, fraud: 150, asylum: 300 } },
+      unnamed: { large: { filing: 580,  fraud: 150, asylum: 600 }, small: { filing: 460, fraud: 150, asylum: 300 } }
+    }
   }
 };
 
-const PP_FEE = 1780;
+let feeData  = null;  // populated by loadFees()
+let fees     = null;
+let PP_FEE   = 1780;
+let edition  = "03/23/26";
+let verified = "2026-04-24";
+
+async function loadFees() {
+  try {
+    const r = await fetch('fees.json');
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    feeData  = await r.json();
+    fees     = feeData.fees;
+    PP_FEE   = feeData.pp_fee;
+    edition  = feeData.edition;
+    verified = feeData.verified;
+    updateBadge(edition, verified, false);
+  } catch (_) {
+    feeData  = FALLBACK;
+    fees     = FALLBACK.fees;
+    PP_FEE   = FALLBACK.pp_fee;
+    edition  = FALLBACK.edition;
+    verified = FALLBACK.verified;
+    updateBadge(edition, verified, true);
+    document.getElementById('feesWarning').style.display = 'flex';
+  }
+}
+
+function updateBadge(ed, ver, stale) {
+  const badge = document.getElementById('verifiedBadge');
+  document.getElementById('badgeText').textContent = `Fees verified \u2014 Edition ${ed}`;
+  badge.title = `Last confirmed: ${ver}`;
+  badge.classList.toggle('stale', stale);
+}
+
+// ── Calculator state ──────────────────────────────────────────────────────────
+
+const state = { visa: null, pp: null, workers: null, size: null, workerCount: 0, petitions: 1 };
+
 const fmt = n => '$' + n.toLocaleString();
 
-function lock(id)   { const e = document.getElementById(id); e.classList.add('locked'); }
-function unlock(id) { const e = document.getElementById(id); e.classList.remove('locked'); }
+// ── Audit gate ────────────────────────────────────────────────────────────────
+
+function checkAudit() {
+  const emp  = document.getElementById('employerName').value.trim();
+  const prep = document.getElementById('preparedBy').value.trim();
+  const ready = emp.length > 0 && prep.length > 0;
+  document.getElementById('step1').classList.toggle('locked', !ready);
+  if (ready) document.getElementById('auditError').style.display = 'none';
+  if (!ready) resetAll();
+}
+
+function resetAll() {
+  ['step_pp','step2','step3'].forEach(id => {
+    document.getElementById(id).classList.add('locked');
+    document.querySelectorAll('#' + id + ' .btn').forEach(b => b.classList.remove('sel'));
+  });
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('printBtn').style.display = 'none';
+  document.getElementById('verifyBtn').style.display = 'none';
+  document.getElementById('printHint').style.display = 'none';
+  document.getElementById('workerCountBox').style.display = 'none';
+  document.getElementById('petitionWarning').style.display = 'none';
+  document.getElementById('workerCount').value = '';
+  Object.assign(state, { visa: null, pp: null, workers: null, size: null, workerCount: 0, petitions: 1 });
+}
+
+// ── Step logic ────────────────────────────────────────────────────────────────
+
+function lock(id)      { document.getElementById(id).classList.add('locked'); }
+function unlock(id)    { document.getElementById(id).classList.remove('locked'); }
 function clearBtns(id) { document.querySelectorAll('#' + id + ' .btn').forEach(b => b.classList.remove('sel')); }
 
 function pick(dim, val, btn) {
+  const emp  = document.getElementById('employerName').value.trim();
+  const prep = document.getElementById('preparedBy').value.trim();
+  if (!emp || !prep) {
+    document.getElementById('auditError').style.display = 'block';
+    document.getElementById('employerName').classList.toggle('error', !emp);
+    document.getElementById('preparedBy').classList.toggle('error', !prep);
+    return;
+  }
+
   state[dim] = val;
   btn.closest('.btn-group').querySelectorAll('.btn').forEach(b => b.classList.remove('sel'));
   btn.classList.add('sel');
   document.getElementById('result').style.display = 'none';
+  document.getElementById('printBtn').style.display = 'none';
+  document.getElementById('verifyBtn').style.display = 'none';
+  document.getElementById('printHint').style.display = 'none';
 
   if (dim === 'visa') {
     const isH2b = val === 'h2b';
     state.pp = isH2b ? null : 'no';
     state.workers = null; state.size = null;
+    state.workerCount = 0; state.petitions = 1;
     clearBtns('step_pp'); clearBtns('step2'); clearBtns('step3');
+    document.getElementById('workerCountBox').style.display = 'none';
+    document.getElementById('petitionWarning').style.display = 'none';
+    document.getElementById('workerCount').value = '';
     lock('step2'); lock('step3');
-    if (isH2b) { unlock('step_pp'); lock('step2'); }
-    else        { lock('step_pp');  unlock('step2'); }
-    document.getElementById('step2label').textContent = isH2b ? 'Step 3 \u2014 Workers'       : 'Step 2 \u2014 Workers';
-    document.getElementById('step3label').textContent = isH2b ? 'Step 4 \u2014 Employer size' : 'Step 3 \u2014 Employer size';
+    if (isH2b) { unlock('step_pp'); }
+    else        { lock('step_pp'); unlock('step2'); }
+    const base = isH2b ? 3 : 2;
+    document.getElementById('step2label').textContent = `Step ${base} \u2014 Workers`;
+    document.getElementById('step3label').textContent = `Step ${base + 1} \u2014 Employer size`;
   }
 
   if (dim === 'pp') {
     state.workers = null; state.size = null;
+    state.workerCount = 0; state.petitions = 1;
     clearBtns('step2'); clearBtns('step3');
+    document.getElementById('workerCountBox').style.display = 'none';
+    document.getElementById('petitionWarning').style.display = 'none';
+    document.getElementById('workerCount').value = '';
     unlock('step2'); lock('step3');
   }
 
   if (dim === 'workers') {
     state.size = null;
+    state.workerCount = 0; state.petitions = 1;
     clearBtns('step3');
-    unlock('step3');
+    document.getElementById('workerCount').value = '';
+    document.getElementById('petitionWarning').style.display = 'none';
+    if (val === 'named') {
+      document.getElementById('workerCountBox').style.display = 'block';
+      lock('step3');
+      return;
+    } else {
+      document.getElementById('workerCountBox').style.display = 'none';
+      unlock('step3');
+    }
   }
 
   if (state.visa && state.workers && state.size && (state.visa === 'h2a' || state.pp !== null)) {
     showResult();
   }
 }
+
+// ── Worker count (named only) ─────────────────────────────────────────────────
+
+function updateWorkerCount() {
+  const raw = parseInt(document.getElementById('workerCount').value) || 0;
+  state.workerCount = raw;
+
+  if (raw < 1) {
+    state.petitions = 1;
+    document.getElementById('petitionWarning').style.display = 'none';
+    lock('step3');
+    return;
+  }
+
+  if (raw > 25) {
+    const petitions = Math.ceil(raw / 25);
+    state.petitions = petitions;
+    document.getElementById('petitionWarning').innerHTML =
+      `<strong>&#9888; Multiple petitions required.</strong> ${raw} named workers exceed the USCIS limit of ` +
+      `25 beneficiaries per I-129 petition (8 C.F.R. &sect; 214.2(h)(2)(ii)). You must file ` +
+      `<strong>${petitions} separate petitions</strong>. Fees below reflect the per-petition amount; ` +
+      `the grand total reflects all ${petitions} petitions.`;
+    document.getElementById('petitionWarning').style.display = 'block';
+  } else {
+    state.petitions = 1;
+    document.getElementById('petitionWarning').style.display = 'none';
+  }
+
+  unlock('step3');
+  if (state.size) showResult();
+}
+
+// ── Fee display ───────────────────────────────────────────────────────────────
 
 function feeRow(label, amt, sub) {
   return `<div class="fee-row">
@@ -275,42 +811,44 @@ function feeRow(label, amt, sub) {
 }
 
 function showResult() {
-  const { visa, pp, workers, size } = state;
-  const f = fees[visa][workers][size];
-  const isH2b = visa === 'h2b';
+  const { visa, pp, workers, size, petitions } = state;
+  const f      = fees[visa][workers][size];
+  const isH2b  = visa === 'h2b';
   const usePP  = pp === 'yes';
+  const multi  = petitions > 1;
+
+  let perTotal = f.filing;
+  if (isH2b) perTotal += f.fraud;
+  if (usePP)  perTotal += PP_FEE;
+  perTotal += f.asylum;
+  const grandTotal = perTotal * petitions;
 
   const wLabel = workers === 'named' ? 'Named workers' : 'Unnamed workers';
-  const sLabel = size === 'large' ? 'Regular employer' : 'Small/Nonprofit employer';
-  const pLabel = isH2b ? (usePP ? ' &mdash; Premium processing' : ' &mdash; Standard processing') : '';
-  const title  = `${visa.toUpperCase()} &mdash; ${wLabel} &mdash; ${sLabel}${pLabel}`;
+  const sLabel = size === 'large' ? 'Regular employer' : 'Small/Nonprofit';
+  const pLabel = isH2b ? (usePP ? ' \u2014 Premium processing' : ' \u2014 Standard processing') : '';
 
-  let html = `<div class="result-title">${title}</div>`;
-  let total = 0;
+  let html = `<div class="result-title">${visa.toUpperCase()} \u2014 ${wLabel} \u2014 ${sLabel}${pLabel}</div>`;
+  if (multi) html += `<div class="per-petition-note">Per-petition fees (&times;${petitions} petitions)</div>`;
 
   html += feeRow('I-129 filing fee', f.filing);
-  total += f.filing;
-
-  if (isH2b) {
-    html += feeRow('Fraud Prevention & Detection Fee', f.fraud, '(not waivable, paid separately)');
-    total += f.fraud;
-  }
-
-  if (usePP) {
-    html += feeRow('I-907 Premium Processing Fee', PP_FEE, '(paid separately)');
-    total += PP_FEE;
-  }
-
+  if (isH2b) html += feeRow('Fraud Prevention &amp; Detection Fee', f.fraud, '(not waivable, paid separately)');
+  if (usePP)  html += feeRow('I-907 Premium Processing Fee', PP_FEE, '(paid separately)');
   html += feeRow('Asylum Program Fee', f.asylum, '(paid separately)');
-  total += f.asylum;
 
   html += `<div class="total-row">
-    <span class="total-label">Estimated total</span>
-    <span class="total-amt">${fmt(total)}</span>
+    <span class="total-label">${multi ? 'Per-petition subtotal' : 'Estimated total'}</span>
+    <span class="total-amt">${fmt(perTotal)}</span>
   </div>`;
 
+  if (multi) {
+    html += `<div class="grand-total-row">
+      <span class="grand-total-label">Grand total &mdash; ${petitions} petitions</span>
+      <span class="grand-total-amt">${fmt(grandTotal)}</span>
+    </div>`;
+  }
+
   const notes = [];
-  if (workers === 'named')   notes.push('Maximum 25 beneficiaries per petition.');
+  if (workers === 'named')   notes.push('Maximum 25 beneficiaries per petition (8 C.F.R. &sect; 214.2(h)(2)(ii)).');
   if (workers === 'unnamed') notes.push('No beneficiary limit per petition.');
   if (size === 'small')      notes.push('Nonprofit petitioners pay $0 Asylum Program Fee.');
   if (!isH2b)                notes.push('H-2A is not currently designated for premium processing.');
@@ -318,10 +856,153 @@ function showResult() {
 
   if (notes.length) html += `<div class="note">${notes.join('<br>')}</div>`;
 
-  const el = document.getElementById('result');
-  el.innerHTML = html;
-  el.style.display = 'block';
+  document.getElementById('result').innerHTML = html;
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('printBtn').style.display = 'block';
+  document.getElementById('verifyBtn').style.display = 'block';
+  document.getElementById('printHint').style.display = 'block';
 }
+
+// ── Print / PDF ───────────────────────────────────────────────────────────────
+
+function generateRefId() {
+  const now = new Date();
+  const ymd = now.getFullYear() +
+    String(now.getMonth()+1).padStart(2,'0') +
+    String(now.getDate()).padStart(2,'0');
+  const rand = Math.random().toString(36).substring(2,7).toUpperCase();
+  return `VFC-${ymd}-${rand}`;
+}
+
+function printReport() {
+  const { visa, pp, workers, size, workerCount, petitions } = state;
+  const f      = fees[visa][workers][size];
+  const isH2b  = visa === 'h2b';
+  const usePP  = pp === 'yes';
+  const multi  = petitions > 1;
+  const employer = document.getElementById('employerName').value.trim();
+  const preparer = document.getElementById('preparedBy').value.trim();
+
+  let perTotal = f.filing;
+  if (isH2b) perTotal += f.fraud;
+  if (usePP)  perTotal += PP_FEE;
+  perTotal += f.asylum;
+  const grandTotal = perTotal * petitions;
+
+  const now = new Date();
+  const timestamp = now.toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  }) + ' at ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+  const refId = generateRefId();
+
+  // Selections
+  const selRows = [
+    { label: 'Visa type',        value: visa.toUpperCase() + (visa === 'h2a' ? ' &mdash; Agricultural' : ' &mdash; Non-agricultural') },
+    { label: 'Beneficiary type', value: workers === 'named' ? 'Named' : 'Unnamed' },
+  ];
+  if (workers === 'named' && workerCount > 0) {
+    selRows.push({ label: 'Worker count',       value: `${workerCount} worker${workerCount !== 1 ? 's' : ''}` });
+    selRows.push({ label: 'Petitions required', value: `${petitions} petition${petitions !== 1 ? 's' : ''} (max 25 named/petition)` });
+  }
+  selRows.push({
+    label: 'Premium processing',
+    value: isH2b ? (usePP ? 'Yes &mdash; I-907 requested' : 'No &mdash; Standard processing') : 'N/A &mdash; H-2A not eligible'
+  });
+  selRows.push({
+    label: 'Employer size',
+    value: size === 'large' ? 'Regular (more than 25 employees)' : 'Small / Nonprofit (25 or fewer employees)'
+  });
+
+  const selHtml = selRows.map(r =>
+    `<div class="pr-sel-item"><label>${r.label}</label><span>${r.value}</span></div>`
+  ).join('');
+
+  // Fee table
+  const feeRows = [];
+  feeRows.push({ label: 'I-129 Filing Fee', sub: '', amt: f.filing });
+  if (isH2b) feeRows.push({ label: 'Fraud Prevention &amp; Detection Fee', sub: 'Not waivable &mdash; paid separately', amt: f.fraud });
+  if (usePP)  feeRows.push({ label: 'I-907 Premium Processing Fee', sub: 'Paid separately', amt: PP_FEE });
+  feeRows.push({ label: 'Asylum Program Fee', sub: 'Paid separately', amt: f.asylum });
+
+  const feeTableRows = feeRows.map(r =>
+    `<tr><td>${r.label}${r.sub ? `<span class="sub">${r.sub}</span>` : ''}</td><td>${fmt(r.amt)}</td></tr>`
+  ).join('');
+
+  // Totals block
+  const totalsHtml = multi
+    ? `<div class="pr-total-row per"><span>Per-petition subtotal</span><span class="val">${fmt(perTotal)}</span></div>
+       <div class="pr-grand-row"><span>Grand total &mdash; ${petitions} petitions (${fmt(perTotal)} &times; ${petitions})</span><span>${fmt(grandTotal)}</span></div>`
+    : `<div class="pr-grand-row"><span>Estimated total</span><span>${fmt(grandTotal)}</span></div>`;
+
+  // Notes
+  const notes = [];
+  if (workers === 'named')   notes.push('Maximum 25 beneficiaries per petition per 8 C.F.R. &sect; 214.2(h)(2)(ii).');
+  if (workers === 'unnamed') notes.push('No beneficiary limit per petition for unnamed workers.');
+  if (size === 'small')      notes.push('Nonprofit petitioners pay $0 Asylum Program Fee.');
+  if (!isH2b)                notes.push('H-2A is not currently designated for premium processing.');
+  if (usePP)                 notes.push('Confirm I-907 premium processing availability at uscis.gov/i-907 before filing.');
+
+  const notesHtml = notes.length
+    ? `<div class="pr-section">
+        <div class="pr-section-title">Filing Notes</div>
+        <div class="pr-notes"><strong>Applicable Notes</strong>${notes.join('<br>')}</div>
+       </div>`
+    : '';
+
+  document.getElementById('print-area').innerHTML = `
+    <div class="pr-header">
+      <div>
+        <div class="pr-title">H-2A / H-2B USCIS Fee Calculator</div>
+        <div class="pr-subtitle">Audit Report &mdash; Paper Filing Fees &mdash; Form G-1055, Edition ${edition}</div>
+      </div>
+      <div class="pr-refblock">
+        <div class="pr-refid">Ref: ${refId}</div>
+        <div class="pr-timestamp">${timestamp}</div>
+      </div>
+    </div>
+
+    <div class="pr-section">
+      <div class="pr-section-title">Audit Information</div>
+      <div class="pr-audit-grid">
+        <div class="pr-audit-item"><label>Employer</label><span>${employer}</span></div>
+        <div class="pr-audit-item"><label>Prepared by</label><span>${preparer}</span></div>
+        <div class="pr-audit-item"><label>Date</label><span>${now.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</span></div>
+        <div class="pr-audit-item"><label>Reference ID</label><span>${refId}</span></div>
+      </div>
+    </div>
+
+    <div class="pr-section">
+      <div class="pr-section-title">Selections Made</div>
+      <div class="pr-selections-grid">${selHtml}</div>
+    </div>
+
+    <div class="pr-section">
+      <div class="pr-section-title">Fee Breakdown${multi ? ` (per petition &mdash; ${petitions} petitions required)` : ''}</div>
+      <table class="pr-fee-table">
+        <thead><tr><th>Fee Component</th><th>Amount</th></tr></thead>
+        <tbody>${feeTableRows}</tbody>
+      </table>
+      <div class="pr-totals">${totalsHtml}</div>
+    </div>
+
+    ${notesHtml}
+
+    <div class="pr-footer">
+      <div>Source: USCIS Form G-1055, Edition ${edition} (verified ${verified}) &mdash; uscis.gov/g-1055 &mdash; &copy; 2026 Inukshuk, LLC. MIT License.</div>
+      <div class="pr-disclaimer">
+        <strong>Disclaimer:</strong> This report is for informational and audit purposes only.
+        Fees apply to paper filings only and are based on USCIS Form G-1055 (Edition ${edition}).
+        Always verify current fees at uscis.gov before submitting any petition.
+        This tool does not constitute legal advice. Consult a licensed immigration attorney for guidance specific to your situation.
+      </div>
+    </div>
+  `;
+
+  window.print();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', loadFees);
 </script>
 </body>
 </html>
