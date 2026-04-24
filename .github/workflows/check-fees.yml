@@ -1,0 +1,35 @@
+name: Check USCIS G-1055 Fees
+
+on:
+  schedule:
+    # Every Monday at 9:00 AM UTC
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+    # Also runnable manually from the Actions tab
+
+jobs:
+  check-fees:
+    name: Download & compare G-1055
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read   # read fees.json from the repo
+      issues: write    # open an issue if fees changed
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install --quiet pdfplumber requests
+
+      - name: Run fee checker
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python scripts/check_fees.py
