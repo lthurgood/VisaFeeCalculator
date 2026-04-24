@@ -999,7 +999,10 @@ function printReport() {
     </div>
   `;
 
+  const originalTitle = document.title;
+  document.title = `${refId} - ${employer}`;
   window.print();
+  document.title = originalTitle;
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
