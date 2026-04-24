@@ -9,9 +9,22 @@ Walks users through a simple step-by-step selection to determine the correct USC
 - **Visa type** — H-2A (agricultural) or H-2B (non-agricultural)
 - **Premium processing** — I-907 election for H-2B petitions
 - **Worker naming** — named (up to 25 per petition) or unnamed (no limit)
+- **Worker count** — for named beneficiaries, calculates petitions required if count exceeds 25 (per 8 C.F.R. § 214.2(h)(2)(ii))
 - **Employer size** — regular (more than 25 employees) or small/nonprofit (25 or fewer)
 
 Once all selections are made, the calculator displays an itemized fee breakdown and estimated total.
+
+## Audit trail & PDF report
+
+Every session requires an employer name and preparer name before calculations unlock. Clicking **Download / Print PDF Report** generates a clean one-page audit report containing:
+
+- Auto-generated reference ID (format: `VFC-YYYYMMDD-XXXXX`)
+- Timestamp and preparer information
+- All selections made
+- Itemized fee breakdown and total
+- Applicable filing notes and disclaimer
+
+The PDF filename is automatically set to the reference ID and employer name (e.g. `VFC-20260424-AB12C - Sunrise Farms LLC.pdf`).
 
 ## Fees included
 
@@ -22,23 +35,35 @@ Once all selections are made, the calculator displays an itemized fee breakdown 
 | I-907 Premium Processing Fee ($1,780) | H-2B only, if selected |
 | Asylum Program Fee | All petitions, paid separately |
 
-> All fees reflect **paper filing** amounts from USCIS Form G-1055, Edition 03/23/26.
+> All fees reflect **paper filing** amounts from USCIS Form G-1055. The current edition and last confirmed date are displayed in the app header.
+
+## Fee data & automated monitoring
+
+Fees are stored in `fees.json` and loaded dynamically. If the file cannot be fetched (e.g. opened locally), the app falls back to built-in values and displays a warning banner.
+
+A GitHub Actions workflow runs every Monday at 9:00 AM UTC. It:
+
+1. Downloads the live USCIS G-1055 PDF
+2. Sends it to Claude AI (claude-haiku-4-5) for intelligent fee extraction
+3. Compares extracted values against `fees.json`
+4. Opens a GitHub Issue automatically if any fees have changed or cannot be verified
+
+This requires an `ANTHROPIC_API_KEY` secret set in the repository's GitHub Actions secrets.
 
 ## Hosting
 
-The calculator is a single HTML file with no external dependencies. Host it anywhere static files are served
+The calculator is a single HTML file with no external dependencies. Hosted via GitHub Pages — no server required.
 
 ## Usage notes
 
 - H-2A petitions are not currently designated for premium processing — the calculator notes this if H-2A is selected.
 - Nonprofit petitioners qualify for the small employer filing fee and pay $0 in Asylum Program Fees.
 - The I-907 Premium Processing Fee must always be submitted separately from other filing fees.
-- Fees adjust periodically. Always verify current fees at [uscis.gov](https://www.uscis.gov) before filing.
+- Fees adjust periodically. Always verify current fees at [uscis.gov/g-1055](https://www.uscis.gov/g-1055) before filing.
 
 ## Source
 
-USCIS Form G-1055, Edition 03/23/26  
-[uscis.gov/forms](https://www.uscis.gov/forms)
+USCIS Form G-1055 — [uscis.gov/g-1055](https://www.uscis.gov/g-1055)
 
 ## License
 
