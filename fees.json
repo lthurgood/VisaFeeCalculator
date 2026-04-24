@@ -1,0 +1,28 @@
+{
+  "edition": "03/23/26",
+  "verified": "2026-04-24",
+  "source": "https://www.uscis.gov/g-1055",
+  "pp_fee": 1780,
+  "fees": {
+    "h2a": {
+      "named": {
+        "large": { "filing": 1090, "asylum": 600 },
+        "small": { "filing": 545,  "asylum": 300 }
+      },
+      "unnamed": {
+        "large": { "filing": 530,  "asylum": 600 },
+        "small": { "filing": 460,  "asylum": 300 }
+      }
+    },
+    "h2b": {
+      "named": {
+        "large": { "filing": 1080, "fraud": 150, "asylum": 600 },
+        "small": { "filing": 540,  "fraud": 150, "asylum": 300 }
+      },
+      "unnamed": {
+        "large": { "filing": 580,  "fraud": 150, "asylum": 600 },
+        "small": { "filing": 460,  "fraud": 150, "asylum": 300 }
+      }
+    }
+  }
+}
