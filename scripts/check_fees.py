@@ -2,46 +2,78 @@
 """
 check_fees.py
 
-Downloads the USCIS G-1055 fee schedule PDF, extracts the edition date and
-all dollar amounts, then compares against fees.json. Opens a GitHub Issue
-automatically if the edition has changed or if the download/parse fails.
+Downloads the USCIS G-1055 PDF, sends it to Claude for intelligent fee
+extraction, compares extracted values against fees.json, and opens a GitHub
+Issue automatically if anything has changed or cannot be verified.
 
-Run manually:  python scripts/check_fees.py
+Run manually:  ANTHROPIC_API_KEY=sk-... python scripts/check_fees.py
 Run via CI:    see .github/workflows/check-fees.yml
 """
 
+import base64
 import io
 import json
 import os
-import re
 import sys
 from datetime import datetime, timezone
 
-import pdfplumber
+import anthropic
 import requests
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-G1055_URL  = "https://www.uscis.gov/sites/default/files/document/forms/g-1055.pdf"
+G1055_URL = "https://www.uscis.gov/sites/default/files/document/forms/g-1055.pdf"
 FEES_JSON  = os.path.join(os.path.dirname(__file__), "..", "fees.json")
 GH_API     = "https://api.github.com"
 TIMEOUT    = 30
+MODEL      = "claude-haiku-4-5"   # fast, cheap — ideal for structured extraction
 
-# Fee labels we care about — used to produce a human-readable diff in the issue.
-FEE_LABELS = {
-    "h2a.named.large.filing":   "H-2A Named  / Regular    / I-129 filing",
-    "h2a.named.small.filing":   "H-2A Named  / Small-NP   / I-129 filing",
-    "h2a.unnamed.large.filing": "H-2A Unnamed / Regular   / I-129 filing",
-    "h2a.unnamed.small.filing": "H-2A Unnamed / Small-NP  / I-129 filing",
-    "h2b.named.large.filing":   "H-2B Named  / Regular    / I-129 filing",
-    "h2b.named.small.filing":   "H-2B Named  / Small-NP   / I-129 filing",
-    "h2b.unnamed.large.filing": "H-2B Unnamed / Regular   / I-129 filing",
-    "h2b.unnamed.small.filing": "H-2B Unnamed / Small-NP  / I-129 filing",
-    "h2b.named.large.fraud":    "H-2B Fraud Prevention & Detection Fee",
-    "h2a.named.large.asylum":   "Asylum Program Fee (Regular employer)",
-    "h2a.named.small.asylum":   "Asylum Program Fee (Small/Nonprofit)",
-    "pp_fee":                   "I-907 Premium Processing Fee",
+# The schema we ask Claude to fill in — mirrors fees.json exactly so comparison is direct.
+EXTRACTION_PROMPT = """
+You are reviewing a USCIS Form G-1055 fee schedule PDF.
+
+Extract the following fee values and return ONLY a JSON object with this exact structure
+(use integer dollar amounts, no $ signs or commas):
+
+{
+  "edition": "MM/DD/YY as printed on the form",
+  "pp_fee": <I-907 Premium Processing Fee amount>,
+  "fees": {
+    "h2a": {
+      "named": {
+        "large": { "filing": <amount>, "asylum": <amount> },
+        "small": { "filing": <amount>, "asylum": <amount> }
+      },
+      "unnamed": {
+        "large": { "filing": <amount>, "asylum": <amount> },
+        "small": { "filing": <amount>, "asylum": <amount> }
+      }
+    },
+    "h2b": {
+      "named": {
+        "large": { "filing": <amount>, "fraud": <amount>, "asylum": <amount> },
+        "small": { "filing": <amount>, "fraud": <amount>, "asylum": <amount> }
+      },
+      "unnamed": {
+        "large": { "filing": <amount>, "fraud": <amount>, "asylum": <amount> },
+        "small": { "filing": <amount>, "fraud": <amount>, "asylum": <amount> }
+      }
+    }
+  }
 }
+
+Key mappings:
+- "large" = Regular employer (more than 25 employees)
+- "small" = Small employer or nonprofit (25 or fewer employees)
+- "named" = Named beneficiaries (up to 25 per petition)
+- "unnamed" = Unnamed beneficiaries
+- "filing" = I-129 filing fee
+- "fraud" = Fraud Prevention and Detection Fee (H-2B only)
+- "asylum" = Asylum Program Fee
+- "pp_fee" = I-907 Premium Processing Fee
+
+Return ONLY the JSON object, no explanation or markdown.
+""".strip()
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -49,49 +81,77 @@ def now_utc() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 
-def download_pdf(url: str) -> io.BytesIO:
+def download_pdf(url: str) -> bytes:
     r = requests.get(
         url,
         timeout=TIMEOUT,
-        headers={"User-Agent": "VisaFeeCalculator-FeeChecker/1.0"},
+        headers={"User-Agent": "VisaFeeCalculator-FeeChecker/2.0"},
         allow_redirects=True,
     )
     r.raise_for_status()
-    return io.BytesIO(r.content)
+    return r.content
 
 
-def extract_text(pdf_bytes: io.BytesIO) -> str:
-    text = []
-    with pdfplumber.open(pdf_bytes) as pdf:
-        for page in pdf.pages:
-            t = page.extract_text()
-            if t:
-                text.append(t)
-    return "\n".join(text)
+def extract_fees_with_claude(pdf_bytes: bytes) -> dict:
+    """Send the PDF to Claude and get back a structured fee object."""
+    client = anthropic.Anthropic()
+    pdf_b64 = base64.standard_b64encode(pdf_bytes).decode("utf-8")
+
+    response = client.messages.create(
+        model=MODEL,
+        max_tokens=1024,
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "document",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "application/pdf",
+                            "data": pdf_b64,
+                        },
+                    },
+                    {
+                        "type": "text",
+                        "text": EXTRACTION_PROMPT,
+                    },
+                ],
+            }
+        ],
+    )
+
+    text = next(b.text for b in response.content if b.type == "text")
+    return json.loads(text)
 
 
-def find_edition(text: str) -> str | None:
-    """Looks for 'Edition MM/DD/YY' anywhere in the PDF text."""
-    m = re.search(r"Edition\s+(\d{2}/\d{2}/\d{2})", text, re.IGNORECASE)
-    return m.group(1) if m else None
+def diff_fees(current: dict, extracted: dict) -> list[str]:
+    """Return a list of human-readable differences between two fee dicts."""
+    diffs = []
 
+    if current.get("edition") != extracted.get("edition"):
+        diffs.append(
+            f"Edition: `{current.get('edition')}` → `{extracted.get('edition')}`"
+        )
 
-def find_dollar_amounts(text: str) -> list[int]:
-    """Returns all unique dollar amounts found in the text, sorted."""
-    raw = re.findall(r"\$\s*([\d,]+)", text)
-    amounts = sorted({int(v.replace(",", "")) for v in raw})
-    return amounts
+    if current.get("pp_fee") != extracted.get("pp_fee"):
+        diffs.append(
+            f"I-907 Premium Processing: **${current.get('pp_fee'):,}** → **${extracted.get('pp_fee'):,}**"
+        )
 
-
-def flat_fees(data: dict) -> dict[str, int]:
-    """Flatten fees.json into dotted-key → amount for easy comparison."""
-    result = {"pp_fee": data["pp_fee"]}
-    for visa, workers_map in data["fees"].items():
-        for workers, size_map in workers_map.items():
-            for size, components in size_map.items():
-                for component, amount in components.items():
-                    result[f"{visa}.{workers}.{size}.{component}"] = amount
-    return result
+    for visa in ("h2a", "h2b"):
+        for workers in ("named", "unnamed"):
+            for size in ("large", "small"):
+                cur = current["fees"][visa][workers][size]
+                ext = extracted.get("fees", {}).get(visa, {}).get(workers, {}).get(size, {})
+                for component, cur_val in cur.items():
+                    ext_val = ext.get(component)
+                    if cur_val != ext_val:
+                        label = f"{visa.upper()} / {workers} / {'Regular' if size == 'large' else 'Small-NP'} / {component}"
+                        diffs.append(
+                            f"{label}: **${cur_val:,}** → **${ext_val:,}**"
+                        )
+    return diffs
 
 
 # ── GitHub Issue ──────────────────────────────────────────────────────────────
@@ -105,7 +165,6 @@ def open_issue(title: str, body: str) -> None:
         print(f"TITLE: {title}\n\nBODY:\n{body}")
         return
 
-    # Avoid duplicate open issues with the same title.
     existing = requests.get(
         f"{GH_API}/repos/{repo}/issues",
         params={"state": "open", "per_page": 50},
@@ -133,104 +192,86 @@ def open_issue(title: str, body: str) -> None:
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    # Load current fees.json
     with open(FEES_JSON) as f:
         current = json.load(f)
 
-    current_edition = current.get("edition", "unknown")
-    print(f"fees.json edition : {current_edition}")
+    print(f"fees.json edition : {current.get('edition')}")
     print(f"fees.json verified: {current.get('verified')}")
 
     # Download G-1055
     print(f"\nDownloading G-1055 from {G1055_URL} ...")
     try:
         pdf_bytes = download_pdf(G1055_URL)
-        print("Download OK.")
+        print(f"Download OK ({len(pdf_bytes):,} bytes).")
     except Exception as e:
         open_issue(
             "⚠️ Fee Check: G-1055 download failed",
             f"## G-1055 could not be downloaded\n\n"
             f"**Error:** `{e}`\n\n"
             f"**Action required:** Manually verify fees at {G1055_URL}\n\n"
-            f"---\n_Checked: {now_utc()} — fees.json edition: {current_edition}_",
+            f"---\n_Checked: {now_utc()} — fees.json edition: {current.get('edition')}_",
         )
         sys.exit(0)
 
-    # Parse PDF
-    print("Parsing PDF text ...")
+    # Send to Claude for extraction
+    print(f"Sending PDF to Claude ({MODEL}) for fee extraction ...")
     try:
-        text = extract_text(pdf_bytes)
+        extracted = extract_fees_with_claude(pdf_bytes)
+        print(f"Extraction OK. Live edition: {extracted.get('edition')}")
+    except json.JSONDecodeError as e:
+        open_issue(
+            "⚠️ Fee Check: Claude returned unexpected output",
+            f"## Claude could not parse the G-1055\n\n"
+            f"**Error:** `{e}`\n\n"
+            f"This may indicate the PDF is scanned/image-only or the form layout has changed significantly.\n\n"
+            f"**Action required:** Manually verify fees at {G1055_URL}\n\n"
+            f"---\n_Checked: {now_utc()} — fees.json edition: {current.get('edition')}_",
+        )
+        sys.exit(0)
     except Exception as e:
         open_issue(
-            "⚠️ Fee Check: G-1055 could not be parsed",
-            f"## G-1055 downloaded but PDF parsing failed\n\n"
+            "⚠️ Fee Check: Claude API call failed",
+            f"## Could not contact Claude API\n\n"
             f"**Error:** `{e}`\n\n"
-            f"The PDF structure may have changed. Manual review required.\n\n"
-            f"**Action required:** Manually verify fees at {G1055_URL}\n\n"
-            f"---\n_Checked: {now_utc()} — fees.json edition: {current_edition}_",
+            f"**Action required:** Check ANTHROPIC_API_KEY secret is set in GitHub Actions, then re-run the workflow.\n\n"
+            f"---\n_Checked: {now_utc()}_",
         )
         sys.exit(0)
 
-    live_edition = find_edition(text)
-    amounts      = find_dollar_amounts(text)
-    amounts_str  = "  ".join(f"${a:,}" for a in amounts)
+    # Compare
+    diffs = diff_fees(current, extracted)
 
-    print(f"Live G-1055 edition: {live_edition or '(not found)'}")
-    print(f"Dollar amounts found: {amounts_str or '(none)'}")
-
-    # ── Case 1: edition date not found in PDF ──────────────────────────────
-    if not live_edition:
-        open_issue(
-            "⚠️ Fee Check: Edition date not found in G-1055",
-            f"## Edition date could not be detected\n\n"
-            f"The G-1055 was downloaded and parsed, but no edition date "
-            f"matching `Edition MM/DD/YY` was found in the text. "
-            f"The PDF layout may have changed.\n\n"
-            f"**Dollar amounts found in PDF:**\n`{amounts_str}`\n\n"
-            f"**Action required:** Manually verify fees at {G1055_URL}\n\n"
-            f"---\n_Checked: {now_utc()} — fees.json edition: {current_edition}_",
-        )
+    if not diffs:
+        print(f"\n✓ All fees match fees.json (edition {current.get('edition')}). No action needed.")
         sys.exit(0)
 
-    # ── Case 2: edition unchanged ──────────────────────────────────────────
-    if live_edition == current_edition:
-        print(f"\n✓ Edition unchanged ({live_edition}). No action needed.")
-        sys.exit(0)
+    # Differences found — open issue
+    print(f"\n! {len(diffs)} difference(s) detected:")
+    for d in diffs:
+        print(f"  • {d}")
 
-    # ── Case 3: new edition detected ───────────────────────────────────────
-    print(f"\n! New edition detected: {live_edition} (was {current_edition})")
-
-    current_flat = flat_fees(current)
-    fee_table_rows = []
-    for key, label in FEE_LABELS.items():
-        current_val = current_flat.get(key)
-        fee_table_rows.append(
-            f"| {label} | ${current_val:,} if current_val is not None else 'N/A' | _verify_ |"
-        )
-    fee_table = "\n".join(fee_table_rows)
+    diff_table = "\n".join(f"| {d.split(':')[0]} | {':'.join(d.split(':')[1:])} |" for d in diffs)
 
     open_issue(
-        f"🚨 Fee Check: New G-1055 edition detected ({live_edition})",
-        f"## USCIS G-1055 has been updated\n\n"
-        f"| Field | Value |\n|---|---|\n"
-        f"| Previous edition | `{current_edition}` |\n"
-        f"| **New edition** | **`{live_edition}`** |\n"
-        f"| Detected | {now_utc()} |\n\n"
+        f"🚨 Fee Check: G-1055 fees have changed (live edition {extracted.get('edition')})",
+        f"## USCIS G-1055 fee changes detected by Claude\n\n"
+        f"| Field | Change |\n|---|---|\n"
+        f"| **Current fees.json edition** | `{current.get('edition')}` |\n"
+        f"| **Live G-1055 edition** | `{extracted.get('edition')}` |\n"
+        f"| **Detected** | {now_utc()} |\n\n"
         f"---\n\n"
-        f"## Current fees in fees.json (verify each against new PDF)\n\n"
-        f"| Fee | Current amount | New amount |\n|---|---|---|\n"
-        f"{fee_table}\n\n"
-        f"---\n\n"
-        f"## Dollar amounts found in new G-1055 PDF\n\n"
-        f"`{amounts_str}`\n\n"
+        f"## Detected differences\n\n"
+        f"| Fee | Change |\n|---|---|\n"
+        f"{diff_table}\n\n"
         f"---\n\n"
         f"## Steps to resolve\n\n"
-        f"1. Open the new G-1055: {G1055_URL}\n"
-        f"2. Compare each fee row above against the new PDF\n"
-        f"3. Update `fees.json` — change `edition`, `verified`, and any fee amounts that changed\n"
+        f"1. Open the live G-1055: {G1055_URL}\n"
+        f"2. Verify each changed fee above against the PDF\n"
+        f"3. Update `fees.json` — change `edition`, `verified`, and any fee amounts\n"
         f"4. Commit and push — the live app picks up changes automatically\n"
         f"5. Close this issue\n\n"
-        f"---\n_This issue was opened automatically by the fee-check workflow._",
+        f"---\n_Claude model used: `{MODEL}` — fees extracted directly from PDF, not regex._\n"
+        f"_This issue was opened automatically by the fee-check workflow._",
     )
 
 
