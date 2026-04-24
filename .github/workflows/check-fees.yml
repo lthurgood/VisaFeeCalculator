@@ -11,6 +11,8 @@ jobs:
   check-fees:
     name: Download & compare G-1055
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     permissions:
       contents: read   # read fees.json from the repo
