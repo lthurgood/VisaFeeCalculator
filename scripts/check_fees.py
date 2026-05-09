@@ -162,6 +162,28 @@ def now_utc() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 
+def today_utc() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+def save_status(current: dict, status: str, message: str = "", bump_verified: bool = False) -> None:
+    """Write status fields back to fees.json.
+
+    status        : 'ok' | 'changes_detected' | 'check_failed'
+    message       : short human-readable note (empty for 'ok')
+    bump_verified : if True, also advance "verified" to today (success path only)
+    """
+    today = today_utc()
+    current["last_checked"] = today
+    current["status"] = status
+    current["status_message"] = message
+    if bump_verified:
+        current["verified"] = today
+    with open(FEES_JSON, "w") as f:
+        json.dump(current, f, indent=2)
+        f.write("\n")
+
+
 def download_pdf(url: str) -> bytes:
     r = requests.get(
         url,
@@ -205,12 +227,7 @@ def extract_fees_with_claude(pdf_bytes: bytes) -> dict:
 
 
 def _parse_json_loosely(text: str) -> dict:
-    """Strip markdown fences / preamble before json.loads.
-
-    Claude is told to return raw JSON, but Haiku will sometimes wrap the
-    response in ```json ... ``` fences or add a short preamble. Pulling the
-    first {...} block out makes parsing resilient to both.
-    """
+    """Strip markdown fences / preamble before json.loads."""
     text = text.strip()
     match = re.search(r"\{.*\}", text, re.DOTALL)
     if not match:
@@ -292,6 +309,7 @@ def main() -> None:
         pdf_bytes = download_pdf(G1055_URL)
         print(f"Download OK ({len(pdf_bytes):,} bytes).")
     except Exception as e:
+        save_status(current, "check_failed", f"G-1055 download failed: {e}")
         open_issue(
             "⚠️ Fee Check: G-1055 download failed",
             f"## G-1055 could not be downloaded\n\n"
@@ -307,6 +325,7 @@ def main() -> None:
         extracted = extract_fees_with_claude(pdf_bytes)
         print(f"Extraction OK. Live edition: {extracted.get('edition')}")
     except json.JSONDecodeError as e:
+        save_status(current, "check_failed", f"Claude output unparseable: {e}")
         open_issue(
             "⚠️ Fee Check: Claude returned unexpected output",
             f"## Claude could not parse the G-1055\n\n"
@@ -317,6 +336,7 @@ def main() -> None:
         )
         sys.exit(0)
     except Exception as e:
+        save_status(current, "check_failed", f"Claude API call failed: {e}")
         open_issue(
             "⚠️ Fee Check: Claude API call failed",
             f"## Could not contact Claude API\n\n"
@@ -330,15 +350,15 @@ def main() -> None:
     diffs = diff_fees(current, extracted)
 
     if not diffs:
-        # Bump the verified date so the UI reflects the latest successful check.
-        current["verified"] = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        with open(FEES_JSON, "w") as f:
-            json.dump(current, f, indent=2)
-            f.write("\n")
+        # Success — bump verified date and mark status as ok.
+        save_status(current, "ok", "", bump_verified=True)
         print(f"\n✓ All fees match fees.json (edition {current.get('edition')}). No action needed.")
         sys.exit(0)
 
-    # Differences found — open issue
+    # Differences found — mark status and open issue
+    summary = f"{len(diffs)} fee change(s) detected; verify against the live G-1055."
+    save_status(current, "changes_detected", summary)
+
     print(f"\n! {len(diffs)} difference(s) detected:")
     for d in diffs:
         print(f"  • {d}")
