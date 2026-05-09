@@ -92,10 +92,17 @@ Return ONLY the JSON object, no explanation or markdown.
 
 
 def now_utc_str():
+    """Human-readable UTC for issue bodies."""
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 
+def now_utc_iso():
+    """ISO-8601 UTC timestamp for last_checked field — calculator parses this client-side."""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def today_utc():
+    """Plain date for verified field — appears as-is in PDF audit footer."""
     return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 
@@ -268,18 +275,17 @@ def open_issue(title, body):
 
 def update_state(state, *, pdf_hash, status):
     state["pdf_sha256"] = pdf_hash
-    state["last_checked"] = today_utc()
+    state["last_checked"] = now_utc_iso()
     state["last_status"] = status
     save_state(state)
 
 
 def update_fees_status(current, status, message="", bump_verified=False):
-    today = today_utc()
-    current["last_checked"] = today
+    current["last_checked"] = now_utc_iso()
     current["status"] = status
     current["status_message"] = message
     if bump_verified:
-        current["verified"] = today
+        current["verified"] = today_utc()
     FEES_PATH.write_text(json.dumps(current, indent=2) + "\n")
 
 
@@ -363,7 +369,7 @@ def main():
     if pdf_hash == state.get("pdf_sha256"):
         print("\nOK  PDF unchanged. Updating last_checked and exiting.")
         update_state(state, pdf_hash=pdf_hash, status=state.get("last_status") or "ok")
-        current["last_checked"] = today_utc()
+        current["last_checked"] = now_utc_iso()
         FEES_PATH.write_text(json.dumps(current, indent=2) + "\n")
         return 0
 
