@@ -2,27 +2,24 @@ name: Check USCIS G-1055 Fees
 
 on:
   schedule:
-    # Every Monday at 9:00 AM UTC
-    - cron: "0 9 * * 1"
+    # Twice daily: 16:00 UTC (~9 AM PT) and 22:00 UTC (~3 PM PT)
+    # Drifts by 1 hour during PST (winter) — close enough.
+    - cron: "0 16,22 * * *"
   workflow_dispatch:
-    # Also runnable manually from the Actions tab
 
 jobs:
   check-fees:
-    name: Download & compare G-1055
+    name: Hash + consensus extraction
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     permissions:
-      contents: write  # commit bumped verified date back to fees.json
-      issues: write    # open an issue if fees changed
-
+      contents: write   # commit fees.json + .fee_check_state.json updates
+      issues: write     # open issues on changes
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5.6.0
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -36,15 +33,15 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python scripts/check_fees.py
 
-      - name: Commit verified date if updated
+      - name: Commit state changes if any
         if: success()
         run: |
-          if [[ -n "$(git status --porcelain fees.json)" ]]; then
+          if [[ -n "$(git status --porcelain fees.json .fee_check_state.json)" ]]; then
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add fees.json
-            git commit -m "chore: bump verified date to $(date -u +%Y-%m-%d) [skip ci]"
+            git add fees.json .fee_check_state.json
+            git commit -m "chore: fee check state $(date -u +%Y-%m-%dT%H:%MZ) [skip ci]"
             git push
           else
-            echo "fees.json unchanged — nothing to commit."
+            echo "No state changes - nothing to commit."
           fi
