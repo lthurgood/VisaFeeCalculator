@@ -642,29 +642,60 @@ async function loadFees() {
   try {
     const r = await fetch('fees.json');
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    feeData  = await r.json();
-    fees     = feeData.fees;
-    PP_FEE   = feeData.pp_fee;
-    edition  = feeData.edition;
+    feeData = await r.json();
+    fees = feeData.fees;
+    PP_FEE = feeData.pp_fee;
+    edition = feeData.edition;
     verified = feeData.verified;
-    updateBadge(edition, verified, false);
+    applyStatus(feeData, false);
   } catch (_) {
-    feeData  = FALLBACK;
-    fees     = FALLBACK.fees;
-    PP_FEE   = FALLBACK.pp_fee;
-    edition  = FALLBACK.edition;
+    feeData = FALLBACK;
+    fees = FALLBACK.fees;
+    PP_FEE = FALLBACK.pp_fee;
+    edition = FALLBACK.edition;
     verified = FALLBACK.verified;
-    updateBadge(edition, verified, true);
-    document.getElementById('feesWarning').style.display = 'flex';
+    applyStatus(FALLBACK, true);
   }
 }
 
-function updateBadge(ed, ver, stale) {
+function applyStatus(data, isFallback) {
   const badge = document.getElementById('verifiedBadge');
-  const verDate = new Date(ver + 'T00:00:00');
-  const verFormatted = verDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  document.getElementById('badgeText').textContent = `Fees verified \u00b7 Ed. ${ed} \u00b7 Confirmed ${verFormatted}`;
-  badge.classList.toggle('stale', stale);
+  const badgeText = document.getElementById('badgeText');
+  const banner = document.getElementById('feesWarning');
+  const bannerSpan = banner.querySelector('span');
+  const fmt = d => new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+
+  if (isFallback) {
+    badgeText.textContent = `Using built-in fees \u00b7 Ed. ${data.edition}`;
+    badge.classList.add('stale');
+    banner.style.display = 'flex';
+    bannerSpan.innerHTML = 'Could not load live fee data &mdash; using built-in values. Verify current fees at <a href="https://www.uscis.gov/g-1055" target="_blank" style="color:#7a5200;">uscis.gov/g-1055</a> before filing.';
+    return;
+  }
+
+  const status = data.status || 'ok';
+  const ver = data.verified;
+  const lastChecked = data.last_checked || ver;
+
+  if (status === 'ok') {
+    badgeText.textContent = `Fees verified \u00b7 Ed. ${data.edition} \u00b7 Confirmed ${fmt(ver)}`;
+    badge.classList.remove('stale');
+    banner.style.display = 'none';
+  } else if (status === 'changes_detected') {
+    badgeText.textContent = `Verify fees \u00b7 Ed. ${data.edition} \u00b7 Last checked ${fmt(lastChecked)}`;
+    badge.classList.add('stale');
+    banner.style.display = 'flex';
+    bannerSpan.innerHTML = `Possible fee change detected on ${fmt(lastChecked)} &mdash; verify against the live G-1055 before filing. <a href="https://www.uscis.gov/g-1055" target="_blank" style="color:#7a5200;">uscis.gov/g-1055</a>`;
+  } else if (status === 'check_failed') {
+    badgeText.textContent = `Check failed \u00b7 Ed. ${data.edition} \u00b7 Last verified ${fmt(ver)}`;
+    badge.classList.add('stale');
+    banner.style.display = 'flex';
+    bannerSpan.innerHTML = `Automated fee verification failed on ${fmt(lastChecked)}. Last successful verification: ${fmt(ver)}. Verify against the live G-1055 before filing. <a href="https://www.uscis.gov/g-1055" target="_blank" style="color:#7a5200;">uscis.gov/g-1055</a>`;
+  } else {
+    badgeText.textContent = `Fees \u00b7 Ed. ${data.edition} \u00b7 Last verified ${fmt(ver)}`;
+    badge.classList.remove('stale');
+    banner.style.display = 'none';
+  }
 }
 
 // ── Calculator state ──────────────────────────────────────────────────────────
