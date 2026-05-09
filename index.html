@@ -663,7 +663,24 @@ function applyStatus(data, isFallback) {
   const badgeText = document.getElementById('badgeText');
   const banner = document.getElementById('feesWarning');
   const bannerSpan = banner.querySelector('span');
-  const fmt = d => new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+
+  // Phrase a YYYY-MM-DD date relative to today, in the visitor's local timezone.
+  // Avoids showing future-looking dates to West Coast visitors when the UTC
+  // date has rolled over but their local date hasn't.
+  const fmt = d => {
+    const target = new Date(d + 'T12:00:00');  // noon local — date is preserved across timezones
+    const now = new Date();
+    const msPerDay = 86400000;
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfTarget = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+    const days = Math.floor((startOfToday - startOfTarget) / msPerDay);
+    if (days <= 0) return 'today';
+    if (days === 1) return 'yesterday';
+    if (days < 7) return 'this week';
+    if (days < 14) return 'last week';
+    if (days < 60) return 'this month';
+    return target.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  };
 
   if (isFallback) {
     badgeText.textContent = `Using built-in fees \u00b7 Ed. ${data.edition}`;
@@ -685,12 +702,12 @@ function applyStatus(data, isFallback) {
     badgeText.textContent = `Verify fees \u00b7 Ed. ${data.edition} \u00b7 Last checked ${fmt(lastChecked)}`;
     badge.classList.add('stale');
     banner.style.display = 'flex';
-    bannerSpan.innerHTML = `Possible fee change detected on ${fmt(lastChecked)} &mdash; verify against the live G-1055 before filing. <a href="https://www.uscis.gov/g-1055" target="_blank" style="color:#7a5200;">uscis.gov/g-1055</a>`;
+    bannerSpan.innerHTML = `Possible fee change detected ${fmt(lastChecked)} &mdash; verify against the live G-1055 before filing. <a href="https://www.uscis.gov/g-1055" target="_blank" style="color:#7a5200;">uscis.gov/g-1055</a>`;
   } else if (status === 'check_failed') {
     badgeText.textContent = `Check failed \u00b7 Ed. ${data.edition} \u00b7 Last verified ${fmt(ver)}`;
     badge.classList.add('stale');
     banner.style.display = 'flex';
-    bannerSpan.innerHTML = `Automated fee verification failed on ${fmt(lastChecked)}. Last successful verification: ${fmt(ver)}. Verify against the live G-1055 before filing. <a href="https://www.uscis.gov/g-1055" target="_blank" style="color:#7a5200;">uscis.gov/g-1055</a>`;
+    bannerSpan.innerHTML = `Automated fee verification failed ${fmt(lastChecked)}. Last successful verification: ${fmt(ver)}. Verify against the live G-1055 before filing. <a href="https://www.uscis.gov/g-1055" target="_blank" style="color:#7a5200;">uscis.gov/g-1055</a>`;
   } else {
     badgeText.textContent = `Fees \u00b7 Ed. ${data.edition} \u00b7 Last verified ${fmt(ver)}`;
     badge.classList.remove('stale');
