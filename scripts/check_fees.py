@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """
 check_fees.py
-
 Downloads the USCIS G-1055 PDF, sends it to Claude for intelligent fee
 extraction, compares extracted values against fees.json, and opens a GitHub
 Issue automatically if anything has changed or cannot be verified.
 
-Run manually:  ANTHROPIC_API_KEY=sk-... python scripts/check_fees.py
-Run via CI:    see .github/workflows/check-fees.yml
+Run manually: ANTHROPIC_API_KEY=sk-... python scripts/check_fees.py
+Run via CI: see .github/workflows/check-fees.yml
 """
 
 import base64
 import io
 import json
+import re
 import os
 import sys
 from datetime import datetime, timezone
@@ -23,10 +23,10 @@ import requests
 # ── Config ────────────────────────────────────────────────────────────────────
 
 G1055_URL = "https://www.uscis.gov/sites/default/files/document/forms/g-1055.pdf"
-FEES_JSON  = os.path.join(os.path.dirname(__file__), "..", "fees.json")
-GH_API     = "https://api.github.com"
-TIMEOUT    = 30
-MODEL      = "claude-haiku-4-5"   # fast, cheap — ideal for structured extraction
+FEES_JSON = os.path.join(os.path.dirname(__file__), "..", "fees.json")
+GH_API = "https://api.github.com"
+TIMEOUT = 30
+MODEL = "claude-haiku-4-5"  # fast, cheap — ideal for structured extraction
 
 # The schema we ask Claude to fill in — mirrors fees.json exactly so comparison is direct.
 EXTRACTION_PROMPT = """
@@ -96,10 +96,9 @@ def extract_fees_with_claude(pdf_bytes: bytes) -> dict:
     """Send the PDF to Claude and get back a structured fee object."""
     client = anthropic.Anthropic()
     pdf_b64 = base64.standard_b64encode(pdf_bytes).decode("utf-8")
-
     response = client.messages.create(
         model=MODEL,
-        max_tokens=1024,
+        max_tokens=2048,
         messages=[
             {
                 "role": "user",
@@ -120,25 +119,35 @@ def extract_fees_with_claude(pdf_bytes: bytes) -> dict:
             }
         ],
     )
-
     text = next(b.text for b in response.content if b.type == "text")
-    return json.loads(text)
+    return _parse_json_loosely(text)
+
+
+def _parse_json_loosely(text: str) -> dict:
+    """Strip markdown fences / preamble before json.loads.
+
+    Claude is told to return raw JSON, but Haiku will sometimes wrap the
+    response in ```json ... ``` fences or add a short preamble. Pulling the
+    first {...} block out makes parsing resilient to both.
+    """
+    text = text.strip()
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if not match:
+        raise json.JSONDecodeError("no JSON object found in response", text, 0)
+    return json.loads(match.group(0))
 
 
 def diff_fees(current: dict, extracted: dict) -> list[str]:
     """Return a list of human-readable differences between two fee dicts."""
     diffs = []
-
     if current.get("edition") != extracted.get("edition"):
         diffs.append(
             f"Edition: `{current.get('edition')}` → `{extracted.get('edition')}`"
         )
-
     if current.get("pp_fee") != extracted.get("pp_fee"):
         diffs.append(
             f"I-907 Premium Processing: **${current.get('pp_fee'):,}** → **${extracted.get('pp_fee'):,}**"
         )
-
     for visa in ("h2a", "h2b"):
         for workers in ("named", "unnamed"):
             for size in ("large", "small"):
@@ -158,8 +167,7 @@ def diff_fees(current: dict, extracted: dict) -> list[str]:
 
 def open_issue(title: str, body: str) -> None:
     token = os.environ.get("GITHUB_TOKEN")
-    repo  = os.environ.get("GITHUB_REPOSITORY")
-
+    repo = os.environ.get("GITHUB_REPOSITORY")
     if not token or not repo:
         print("GITHUB_TOKEN / GITHUB_REPOSITORY not set — printing issue instead.\n")
         print(f"TITLE: {title}\n\nBODY:\n{body}")
@@ -171,7 +179,6 @@ def open_issue(title: str, body: str) -> None:
         headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
         timeout=TIMEOUT,
     ).json()
-
     for issue in existing:
         if isinstance(issue, dict) and issue.get("title") == title:
             print(f"Issue already open: {issue['html_url']} — skipping duplicate.")
@@ -242,6 +249,11 @@ def main() -> None:
     diffs = diff_fees(current, extracted)
 
     if not diffs:
+        # Bump the verified date so the UI reflects the latest successful check.
+        current["verified"] = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        with open(FEES_JSON, "w") as f:
+            json.dump(current, f, indent=2)
+            f.write("\n")
         print(f"\n✓ All fees match fees.json (edition {current.get('edition')}). No action needed.")
         sys.exit(0)
 
