@@ -1,6 +1,6 @@
 {
-  "edition": "03/23/26",
-  "verified": "2026-04-24",
+  "edition": "05/06/26",
+  "verified": "2026-05-09",
   "source": "https://www.uscis.gov/g-1055",
   "pp_fee": 1780,
   "fees": {
@@ -54,6 +54,6 @@
     }
   },
   "last_checked": "2026-05-09",
-  "status": "changes_detected",
-  "status_message": "1 fee change(s) detected; verify against the live G-1055."
+  "status": "ok",
+  "status_message": "Edition auto-updated 03/23/26 -> 05/06/26; fees unchanged."
 }
