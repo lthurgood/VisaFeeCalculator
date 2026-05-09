@@ -664,11 +664,10 @@ function applyStatus(data, isFallback) {
   const banner = document.getElementById('feesWarning');
   const bannerSpan = banner.querySelector('span');
 
-  // Phrase a YYYY-MM-DD date relative to today, in the visitor's local timezone.
-  // Avoids showing future-looking dates to West Coast visitors when the UTC
-  // date has rolled over but their local date hasn't.
+  // Relative date: "today" / "yesterday" / "this week" / explicit date for older.
+  // Used for the verified field and the fallback fees-load warning.
   const fmt = d => {
-    const target = new Date(d + 'T12:00:00');  // noon local — date is preserved across timezones
+    const target = new Date(d + 'T12:00:00');  // noon, so timezone shifts don't bump the day
     const now = new Date();
     const msPerDay = 86400000;
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -680,6 +679,20 @@ function applyStatus(data, isFallback) {
     if (days < 14) return 'last week';
     if (days < 60) return 'this month';
     return target.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  };
+
+  // Datetime formatter for last_checked. Renders ISO timestamps in the visitor's
+  // local timezone as "May 8, 9:32 PM". Falls back to date-only if the field is
+  // still in the older "YYYY-MM-DD" format from before the script upgrade.
+  const fmtDateTime = iso => {
+    if (!iso) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+      return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric' });
+    }
+    return new Date(iso).toLocaleString('en-US', {
+      month: 'short', day: 'numeric',
+      hour: 'numeric', minute: '2-digit', hour12: true
+    });
   };
 
   if (isFallback) {
@@ -695,19 +708,19 @@ function applyStatus(data, isFallback) {
   const lastChecked = data.last_checked || ver;
 
   if (status === 'ok') {
-    badgeText.textContent = `Fees verified \u00b7 Ed. ${data.edition} \u00b7 Confirmed ${fmt(ver)}`;
+    badgeText.textContent = `Fees verified \u00b7 Ed. ${data.edition} \u00b7 Checked ${fmtDateTime(lastChecked)}`;
     badge.classList.remove('stale');
     banner.style.display = 'none';
   } else if (status === 'changes_detected') {
-    badgeText.textContent = `Verify fees \u00b7 Ed. ${data.edition} \u00b7 Last checked ${fmt(lastChecked)}`;
+    badgeText.textContent = `Verify fees \u00b7 Ed. ${data.edition} \u00b7 Last checked ${fmtDateTime(lastChecked)}`;
     badge.classList.add('stale');
     banner.style.display = 'flex';
-    bannerSpan.innerHTML = `Possible fee change detected ${fmt(lastChecked)} &mdash; verify against the live G-1055 before filing. <a href="https://www.uscis.gov/g-1055" target="_blank" style="color:#7a5200;">uscis.gov/g-1055</a>`;
+    bannerSpan.innerHTML = `Possible fee change detected ${fmtDateTime(lastChecked)} &mdash; verify against the live G-1055 before filing. <a href="https://www.uscis.gov/g-1055" target="_blank" style="color:#7a5200;">uscis.gov/g-1055</a>`;
   } else if (status === 'check_failed') {
-    badgeText.textContent = `Check failed \u00b7 Ed. ${data.edition} \u00b7 Last verified ${fmt(ver)}`;
+    badgeText.textContent = `Check failed \u00b7 Ed. ${data.edition} \u00b7 Last checked ${fmtDateTime(lastChecked)}`;
     badge.classList.add('stale');
     banner.style.display = 'flex';
-    bannerSpan.innerHTML = `Automated fee verification failed ${fmt(lastChecked)}. Last successful verification: ${fmt(ver)}. Verify against the live G-1055 before filing. <a href="https://www.uscis.gov/g-1055" target="_blank" style="color:#7a5200;">uscis.gov/g-1055</a>`;
+    bannerSpan.innerHTML = `Automated fee verification failed ${fmtDateTime(lastChecked)}. Last successful verification: ${fmt(ver)}. Verify against the live G-1055 before filing. <a href="https://www.uscis.gov/g-1055" target="_blank" style="color:#7a5200;">uscis.gov/g-1055</a>`;
   } else {
     badgeText.textContent = `Fees \u00b7 Ed. ${data.edition} \u00b7 Last verified ${fmt(ver)}`;
     badge.classList.remove('stale');
