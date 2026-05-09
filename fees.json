@@ -6,23 +6,54 @@
   "fees": {
     "h2a": {
       "named": {
-        "large": { "filing": 1090, "asylum": 600 },
-        "small": { "filing": 545,  "asylum": 300 }
+        "large": {
+          "filing": 1090,
+          "asylum": 600
+        },
+        "small": {
+          "filing": 545,
+          "asylum": 300
+        }
       },
       "unnamed": {
-        "large": { "filing": 530,  "asylum": 600 },
-        "small": { "filing": 460,  "asylum": 300 }
+        "large": {
+          "filing": 530,
+          "asylum": 600
+        },
+        "small": {
+          "filing": 460,
+          "asylum": 300
+        }
       }
     },
     "h2b": {
       "named": {
-        "large": { "filing": 1080, "fraud": 150, "asylum": 600 },
-        "small": { "filing": 540,  "fraud": 150, "asylum": 300 }
+        "large": {
+          "filing": 1080,
+          "fraud": 150,
+          "asylum": 600
+        },
+        "small": {
+          "filing": 540,
+          "fraud": 150,
+          "asylum": 300
+        }
       },
       "unnamed": {
-        "large": { "filing": 580,  "fraud": 150, "asylum": 600 },
-        "small": { "filing": 460,  "fraud": 150, "asylum": 300 }
+        "large": {
+          "filing": 580,
+          "fraud": 150,
+          "asylum": 600
+        },
+        "small": {
+          "filing": 460,
+          "fraud": 150,
+          "asylum": 300
+        }
       }
     }
-  }
+  },
+  "last_checked": "2026-05-09",
+  "status": "changes_detected",
+  "status_message": "1 fee change(s) detected; verify against the live G-1055."
 }
