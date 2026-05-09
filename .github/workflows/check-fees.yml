@@ -13,9 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
     permissions:
-      contents: read   # read fees.json from the repo
+      contents: write  # commit bumped verified date back to fees.json
       issues: write    # open an issue if fees changed
 
     steps:
@@ -36,3 +35,16 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python scripts/check_fees.py
+
+      - name: Commit verified date if updated
+        if: success()
+        run: |
+          if [[ -n "$(git status --porcelain fees.json)" ]]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add fees.json
+            git commit -m "chore: bump verified date to $(date -u +%Y-%m-%d) [skip ci]"
+            git push
+          else
+            echo "fees.json unchanged — nothing to commit."
+          fi
