@@ -28,16 +28,107 @@ GH_API = "https://api.github.com"
 TIMEOUT = 30
 MODEL = "claude-haiku-4-5"  # fast, cheap — ideal for structured extraction
 
-# The schema we ask Claude to fill in — mirrors fees.json exactly so comparison is direct.
-EXTRACTION_PROMPT = """
-You are reviewing a USCIS Form G-1055 fee schedule PDF.
+# ── Extraction prompt ────────────────────────────────────────────────────────
+# This is intentionally verbose. The G-1055 contains fees for many forms and
+# classifications, and Claude has previously grabbed the wrong rows (e.g. the
+# H-1B premium processing fee instead of the H-2B one). The prompt narrows
+# the scope explicitly and includes known-correct values as sanity anchors.
 
-Extract the following fee values and return ONLY a JSON object with this exact structure
-(use integer dollar amounts, no $ signs or commas):
+EXTRACTION_PROMPT = """
+You are reviewing USCIS Form G-1055, the official USCIS fee schedule.
+
+Your job: extract paper-filing fees for ONLY the H-2A and H-2B classifications
+of Form I-129 (Petition for a Nonimmigrant Worker), plus the I-907 Premium
+Processing fee that applies to those specific classifications.
+
+The G-1055 contains fees for many forms and classifications. Read ONLY rows
+explicitly labeled "H-2A" or "H-2B". Do NOT pull values from H-1B, H-3, L-1,
+O-1, E, TN, R-1 (alone), or any other classification.
+
+---
+
+# Schema terminology
+
+In the JSON output below:
+- "large"   = Regular employer (more than 25 full-time-equivalent employees)
+- "small"   = Small Employer OR Nonprofit (25 or fewer FTEs)
+- "named"   = Named beneficiaries (up to 25 named workers per petition)
+- "unnamed" = Unnamed beneficiaries (no per-petition limit)
+
+---
+
+# I-129 filing fees (H-2A and H-2B)
+
+For each visa type the form lists 4 filing-fee variants:
+  1. NAMED beneficiaries  + Regular employer  (>25 FTE)  → "named.large.filing"
+  2. NAMED beneficiaries  + Small/Nonprofit   (≤25 FTE)  → "named.small.filing"
+  3. UNNAMED beneficiaries + Regular employer (>25 FTE)  → "unnamed.large.filing"
+  4. UNNAMED beneficiaries + Small/Nonprofit  (≤25 FTE)  → "unnamed.small.filing"
+
+These are I-129 filing fees only — do not include the Asylum Program Fee or
+the Fraud Prevention and Detection Fee in the "filing" amounts.
+
+---
+
+# Asylum Program Fee — READ CAREFULLY
+
+The G-1055 lists the Asylum Program Fee at THREE different amounts:
+  • $0   — Nonprofit
+  • $300 — Small Employer (25 or fewer FTEs)
+  • $600 — Regular employer (more than 25 FTEs)
+
+For our schema:
+  • "asylum" under "large" → use the $600 (Regular employer) tier
+  • "asylum" under "small" → use the $300 (Small Employer) tier
+                             — NOT $0, and NOT $600
+
+These tiers have been stable for years. If a "small" row reads $600 or $0,
+you have almost certainly misread the row — re-check before reporting.
+
+---
+
+# Fraud Prevention and Detection Fee (H-2B only)
+
+This is a flat fee that applies to ALL H-2B petitions regardless of size or
+named/unnamed status. It has historically been $150. H-2A petitions do NOT
+have this fee, so do not include "fraud" anywhere under "h2a".
+
+---
+
+# I-907 Premium Processing Fee — READ VERY CAREFULLY
+
+The G-1055 lists I-907 Premium Processing fees for many different forms and
+classifications. We need ONLY the I-907 fee that applies to Form I-129 with
+H-2B (or H-2B/R-1) classification. As of 2026 this fee is $1,780.
+
+DO NOT report any of these other I-907 fees:
+  • I-129 with H-1B / H-3 / L-1 / O-1 / E / TN classification → ~$2,965
+  • I-140 (immigrant petitions for workers)                   → ~$2,965
+  • I-539 (status change/extension for F, J, M)               → ~$2,075
+  • I-765 (employment authorization)                          → ~$1,780
+
+Look specifically for the row labeled with both "I-129" AND "H-2B" (often
+shown as "H-2B/R-1"). If the number you read is $2,965, you are on the
+wrong row — go back and find the H-2B row.
+
+---
+
+# Edition
+
+Report the edition date printed at the bottom of the G-1055 in MM/DD/YY format
+(e.g. "05/06/26").
+
+---
+
+# Output format
+
+Return ONLY a JSON object in this exact structure. Use integer dollar amounts
+(no $ signs, no commas, no decimals). If a value cannot be confidently found,
+set it to null rather than guessing.
 
 {
-  "edition": "MM/DD/YY as printed on the form",
-  "pp_fee": <I-907 Premium Processing Fee amount>,
+  "edition": "MM/DD/YY",
+  "pp_fee": <I-907 fee for I-129 H-2B/R-1 ONLY>,
   "fees": {
     "h2a": {
       "named": {
@@ -61,16 +152,6 @@ Extract the following fee values and return ONLY a JSON object with this exact s
     }
   }
 }
-
-Key mappings:
-- "large" = Regular employer (more than 25 employees)
-- "small" = Small employer or nonprofit (25 or fewer employees)
-- "named" = Named beneficiaries (up to 25 per petition)
-- "unnamed" = Unnamed beneficiaries
-- "filing" = I-129 filing fee
-- "fraud" = Fraud Prevention and Detection Fee (H-2B only)
-- "asylum" = Asylum Program Fee
-- "pp_fee" = I-907 Premium Processing Fee
 
 Return ONLY the JSON object, no explanation or markdown.
 """.strip()
