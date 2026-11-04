@@ -53,7 +53,7 @@
       }
     }
   },
-  "last_checked": "2026-11-04T01:45:44Z",
-  "status": "ok",
-  "status_message": "Edition auto-updated 10/16/26 -> 10/26/26; fees unchanged."
+  "last_checked": "2026-11-04T21:37:56Z",
+  "status": "check_failed",
+  "status_message": "G-1055 download failed: 403 Client Error: Forbidden for url: https://www.uscis.gov/sites/default/files/document/forms/g-1055.pdf"
 }
