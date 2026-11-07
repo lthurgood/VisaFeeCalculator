@@ -53,7 +53,7 @@
       }
     }
   },
-  "last_checked": "2026-11-07T01:28:07Z",
+  "last_checked": "2026-11-07T19:44:51Z",
   "status": "check_failed",
   "status_message": "G-1055 download failed: 403 Client Error: Forbidden for url: https://www.uscis.gov/sites/default/files/document/forms/g-1055.pdf"
 }
