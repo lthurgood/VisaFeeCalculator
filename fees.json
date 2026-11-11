@@ -1,6 +1,6 @@
 {
   "edition": "10/26/26",
-  "verified": "2026-10-28",
+  "verified": "2026-11-11",
   "source": "https://www.uscis.gov/g-1055",
   "pp_fee": 1780,
   "fees": {
@@ -53,7 +53,7 @@
       }
     }
   },
-  "last_checked": "2026-11-11T01:36:17Z",
-  "status": "check_failed",
-  "status_message": "G-1055 download failed: 403 Client Error: Forbidden for url: https://www.uscis.gov/sites/default/files/document/forms/g-1055.pdf"
+  "last_checked": "2026-11-11T02:24:03Z",
+  "status": "ok",
+  "status_message": ""
 }
