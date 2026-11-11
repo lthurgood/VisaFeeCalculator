@@ -5,14 +5,17 @@ check_fees.py — hash-gated, three-model consensus G-1055 fee verifier.
 How it works:
   1. Download the live USCIS G-1055 PDF.
   2. SHA-256 hash the bytes; compare to stored hash in .fee_check_state.json.
-  3. If hash matches: update last_checked timestamp, exit silently.
+  3. If hash matches AND the last check ended "ok": refresh last_checked,
+     reset status to ok, exit. If hash matches but the last check failed or
+     flagged changes, fall through to step 4 so the status can recover.
   4. If hash differs: run three Claude models in parallel (Haiku, Sonnet, Opus),
      take a majority vote on each fee field, diff against fees.json, and route:
        - all 3 agree, no diff:        update verified, exit
        - all 3 agree, edition-only:   auto-apply edition, exit
        - all 3 agree, fee diff:       open high-confidence issue
        - models disagree on any field: open low-confidence side-by-side issue
-     Either way, the new hash is stored so we don't re-alert on the same PDF.
+     The new hash is stored once the PDF has actually been read. If every
+     model fails, the old hash is kept so the next run tries again.
 """
 
 from __future__ import annotations
@@ -366,21 +369,33 @@ def main():
     pdf_hash = sha256_hex(pdf_bytes)
     print(f"  downloaded {len(pdf_bytes):,} bytes; sha256={pdf_hash}")
 
-    if pdf_hash == state.get("pdf_sha256"):
-        print("\nOK  PDF unchanged. Updating last_checked and exiting.")
-        update_state(state, pdf_hash=pdf_hash, status=state.get("last_status") or "ok")
-        current["last_checked"] = now_utc_iso()
-        FEES_PATH.write_text(json.dumps(current, indent=2) + "\n")
+    unchanged = pdf_hash == state.get("pdf_sha256")
+    if unchanged and state.get("last_status") == "ok":
+        # Same PDF we already verified, and that verification passed. Clear any
+        # leftover status from a transient failure (e.g. a one-off 403) so the
+        # calculator banner doesn't stay stuck on "check failed".
+        print("\nOK  PDF unchanged and previously verified. Updating last_checked and exiting.")
+        update_fees_status(current, "ok", "")
+        update_state(state, pdf_hash=pdf_hash, status="ok")
         return 0
 
-    print(f"\n!   PDF changed. Running consensus extraction across {len(CONSENSUS_MODELS)} models.")
+    if unchanged:
+        # Same PDF, but the last real check did not end in "ok" (an earlier
+        # failure, or a fee change someone may have since fixed in fees.json).
+        # Re-run extraction so the status can recover instead of sticking.
+        print(f"\n!   PDF unchanged but last status was "
+              f"'{state.get('last_status') or '(none)'}'. Re-running consensus extraction.")
+    else:
+        print(f"\n!   PDF changed. Running consensus extraction across {len(CONSENSUS_MODELS)} models.")
     results, failed = run_consensus(pdf_bytes)
 
     if not results:
         msg = f"All consensus models failed: {', '.join(failed)}"
         print(f"ERROR: {msg}")
         update_fees_status(current, "check_failed", msg)
-        update_state(state, pdf_hash=pdf_hash, status="check_failed")
+        # Keep the previously stored hash: this PDF was never actually read, so
+        # the next run must not treat it as already checked.
+        update_state(state, pdf_hash=state.get("pdf_sha256", ""), status="check_failed")
         open_issue("[Warning] Fee Check: All extraction models failed",
                    f"## All extraction models errored on the new G-1055\n\n"
                    f"**Failed:** {', '.join(failed)}\n\n"
